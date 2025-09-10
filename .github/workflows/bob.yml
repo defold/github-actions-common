@@ -12,7 +12,7 @@ on:
         required: false
         type: string
         description: 'Which MacOS runner should use'
-        default: 'macOSlatest'
+        default: macOS-latest
       windows_runner:
         required: false
         type: string
@@ -21,7 +21,7 @@ on:
       build_server:
         required: false
         type: string
-        description: 'Buld server url'
+        description: 'Build server url'
         default: 'https://build-stage.defold.com'
       channel:
         required: false
@@ -42,15 +42,20 @@ on:
         required: false
         type: string
         description: 'Additional options passed to bundle command'
+      ignored_platforms:
+        required: false
+        type: string
+        description: 'JSON-like string with list of ignored platforms' # [{"platform": "wasm_pthread-web"}, {"platform": "js-web"}]
+        default: ''
 
 jobs:
   build_with_bob:
     strategy:
       matrix:
-        platform: [armv7-android, x86_64-linux, js-web]
+        platform: [armv7-android, arm64-android, x86_64-linux, arm64-linux, js-web, wasm-web, wasm_pthread-web]
+        exclude: ${{ fromJSON(inputs.ignored_platforms) }}
       fail-fast: false
     runs-on: ${{ inputs.ubuntu_runner }}
-
     name: Build
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -81,17 +86,17 @@ jobs:
       - name: Resolve libraries
         run: java -jar bob.jar resolve
       - name: Build
-        run: java -jar bob.jar --platform=${{ matrix.platform }} build --build-server=${{ inputs.build_server }} ${{ inputs.additonal_build_options }}
+        run: java -jar bob.jar --platform=${{ matrix.platform }} --architectures ${{ matrix.platform }} build --build-server=${{ inputs.build_server }} ${{ inputs.additonal_build_options }}
       - name: Bundle
-        run: java -jar bob.jar --platform=${{ matrix.platform }} bundle ${{ inputs.additonal_bundle_options }}
+        run: java -jar bob.jar --platform=${{ matrix.platform }} --architectures ${{ matrix.platform }} bundle ${{ inputs.additonal_bundle_options }}
 
   build_with_bob_windows:
     strategy:
       matrix:
         platform: [x86_64-win32, x86-win32]
+        exclude: ${{ fromJSON(inputs.ignored_platforms) }}
       fail-fast: false
     runs-on: ${{ inputs.windows_runner }}
-
     name: Build
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -117,18 +122,18 @@ jobs:
       - name: Resolve libraries
         run: java -jar bob.jar resolve
       - name: Build
-        run: java -jar bob.jar --platform=${{ matrix.platform }} build --build-server=${{ inputs.build_server }} ${{ inputs.additonal_build_options }}
+        run: java -jar bob.jar --platform=${{ matrix.platform }} --architectures ${{ matrix.platform }} build --build-server=${{ inputs.build_server }} ${{ inputs.additonal_build_options }}
       - name: Bundle
-        run: java -jar bob.jar --platform=${{ matrix.platform }} bundle ${{ inputs.additonal_bundle_options }}
+        run: java -jar bob.jar --platform=${{ matrix.platform }} --architectures ${{ matrix.platform }} bundle ${{ inputs.additonal_bundle_options }}
 
   # macOS is not technically needed for building, but we want to test bundling as well, since we're also testing the manifest merging
   build_with_bob_macos:
     strategy:
       matrix:
-        platform: [arm64-macos, x86_64-macos]
+        platform: [arm64-macos, x86_64-macos, arm64-ios]
+        exclude: ${{ fromJSON(inputs.ignored_platforms) }}
       fail-fast: false
-    runs-on: macOS-latest
-
+    runs-on: ${{ inputs.macos_runner }}
     name: Build
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -153,6 +158,6 @@ jobs:
       - name: Resolve libraries
         run: java -jar bob.jar resolve
       - name: Build
-        run: java -jar bob.jar --platform=${{ matrix.platform }} build --build-server=${{ inputs.build_server }} ${{ inputs.additonal_build_options }}
+        run: java -jar bob.jar --platform=${{ matrix.platform }} --architectures ${{ matrix.platform }} build --build-server=${{ inputs.build_server }} ${{ inputs.additonal_build_options }}
       - name: Bundle
-        run: java -jar bob.jar --platform=${{ matrix.platform }} bundle ${{ inputs.additonal_bundle_options }}
+        run: java -jar bob.jar --platform=${{ matrix.platform }} --architectures ${{ matrix.platform }} bundle ${{ inputs.additonal_bundle_options }}
