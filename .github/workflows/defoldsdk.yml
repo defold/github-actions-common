@@ -59,18 +59,14 @@ on:
 jobs:
   prepare:
     runs-on: ${{ inputs.runner }}
+    env:
+      GH_TOKEN: ${{ github.token }}
     outputs:
       defold_version: ${{ steps.resolve-version.outputs.defold_version }}
       defoldsdk_cache_key: ${{ steps.compute-cache-key.outputs.cache_key }}
       dynamo_home: ${{ steps.resolve-paths.outputs.dynamo_home }}
       bob_path: ${{ steps.resolve-paths.outputs.bob_path }}
     steps:
-      # Provide Python for inline scripts that resolve versions and fingerprints.
-      - name: Setup Python 3
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-
       # Resolve the Defold release tag from channel/version inputs.
       # - stable + latest => GitHub /releases/latest
       # - alpha/beta + latest => highest semantic tag ending with -alpha/-beta
@@ -82,57 +78,17 @@ jobs:
           set -euo pipefail
           CHANNEL="${{ inputs.defold_channel }}"
           VERSION="${{ inputs.defold_version }}"
-          if [ -z "${VERSION}" ] || [ "${VERSION}" = "latest" ]; then
-            VERSION="$(CHANNEL="${CHANNEL}" REQUESTED_VERSION="${VERSION:-latest}" python - <<'PY'
-          import json
-          import os
-          import re
-          import urllib.request
-
-          channel = os.environ["CHANNEL"]
-          requested_version = os.environ.get("REQUESTED_VERSION", "latest") or "latest"
-          base = "https://api.github.com/repos/defold/defold"
-
-          def iter_releases(base_url):
-              page = 1
-              while True:
-                  with urllib.request.urlopen(f"{base_url}/releases?per_page=100&page={page}") as response:
-                      releases = json.load(response)
-                  if not releases:
-                      break
-                  for release in releases:
-                      yield release
-                  if len(releases) < 100:
-                      break
-                  page += 1
-
-          if channel == "stable" and requested_version == "latest":
-              with urllib.request.urlopen(f"{base}/releases/latest") as response:
-                  print(json.load(response)["tag_name"])
-          elif channel in ("alpha", "beta") and requested_version == "latest":
-              suffix = f"-{channel}"
-              candidates = []
-              for release in iter_releases(base):
-                  tag = release.get("tag_name", "")
-                  if not tag.endswith(suffix):
-                      continue
-                  version = tag[: -len(suffix)]
-                  match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", version)
-                  if not match:
-                      continue
-                  candidates.append(((int(match[1]), int(match[2]), int(match[3])), tag))
-
-              if not candidates:
-                  raise SystemExit(f"No {channel} release tags found in GitHub releases")
-
-              candidates.sort(reverse=True)
-              print(candidates[0][1])
-          elif requested_version != "latest":
-              print(requested_version)
-          else:
-              raise SystemExit(f"Unsupported channel/version combination: channel={channel}, version={requested_version}")
-          PY
-            )"
+          if [ "$VERSION" == "latest" ]; then
+            if [ "$CHANNEL" == "stable" ]; then
+              VERSION=$(gh release list --repo defold/defold --json isLatest,name,tagName -q 'map(select(.isLatest == true))[0].tagName')
+            else
+              if [ "$CHANNEL" == "beta" ] || [ "$CHANNEL" == "alpha" ]; then
+                VERSION=$(gh release list --repo defold/defold --order "desc" --json isLatest,name,tagName -q "map(select(.tagName | endswith(\"-$CHANNEL\")))[0].tagName")
+              else
+                echo "Unsupported channel/version combination: channel=$CHANNEL, version=$VERSION"
+                exit 1
+              fi
+            fi
           fi
           echo "defold_version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Using Defold version: ${VERSION}"
@@ -166,14 +122,7 @@ jobs:
           SDK_ETAG="$(get_etag "${SDK_URL}")"
           BOB_ETAG="$(get_etag "${BOB_URL}")"
 
-          ETAG_FINGERPRINT="$(SDK_ETAG="${SDK_ETAG}" BOB_ETAG="${BOB_ETAG}" python - <<'PY'
-          import hashlib
-          import os
-
-          value = f"{os.environ['SDK_ETAG']}|{os.environ['BOB_ETAG']}"
-          print(hashlib.sha256(value.encode("utf-8")).hexdigest()[:16])
-          PY
-          )"
+          ETAG_FINGERPRINT="$(echo -n "${SDK_ETAG}|${BOB_ETAG}" | sha256sum | cut -c1-16)"
 
           {
             echo "sdk_etag=${SDK_ETAG}"
