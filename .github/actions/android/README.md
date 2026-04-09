@@ -50,8 +50,9 @@ It also adds these directories to `PATH`:
 SDK root resolution:
 
 - If `android-sdk-root` is set, that path is used.
-- On GitHub-hosted runners, the action prefers the runner's existing Android SDK via `ANDROID_SDK_ROOT`, then `ANDROID_HOME`, then falls back to `$HOME/.android/sdk`.
-- On self-hosted runners, the default is `${{ runner.temp }}/android-sdk` to avoid multiple runners on the same machine mutating a shared SDK directory.
+- Otherwise, the default is `${{ runner.temp }}/android-sdk`.
+- Using a runner-temp SDK avoids mixing with preinstalled runner SDK contents and reduces version-skew issues between `sdkmanager`, command-line tools, and existing package metadata.
+- On self-hosted runners, this also avoids multiple runners on the same machine mutating a shared SDK directory by default.
 
 Caching notes:
 

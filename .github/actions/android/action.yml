@@ -32,7 +32,6 @@ runs:
       env:
         INPUT_ANDROID_SDK_ROOT: ${{ inputs.android-sdk-root }}
         RUNNER_ARCH: ${{ runner.arch }}
-        RUNNER_ENVIRONMENT: ${{ runner.environment }}
         RUNNER_TEMP_DIR: ${{ runner.temp }}
       run: |
         set -euo pipefail
@@ -43,11 +42,7 @@ runs:
         NDK_VERSION="${{ inputs.android-ndk }}"
 
         if [ -z "${SDK_ROOT}" ]; then
-          if [ "${RUNNER_ENVIRONMENT}" = "github-hosted" ]; then
-            SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/.android/sdk}}"
-          else
-            SDK_ROOT="${RUNNER_TEMP_DIR}/android-sdk"
-          fi
+          SDK_ROOT="${RUNNER_TEMP_DIR}/android-sdk"
         fi
 
         echo "sdk-root=${SDK_ROOT}" >> "$GITHUB_OUTPUT"
