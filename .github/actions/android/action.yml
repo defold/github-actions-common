@@ -1,0 +1,152 @@
+name: Setup Android SDK
+description: Setup Android SDK, build-tools, and NDK with cache and exported env vars
+
+inputs:
+  android-api-level:
+    description: Android platform API level to install
+    required: false
+    default: "36"
+  android-build-tools:
+    description: Android build-tools version to install
+    required: false
+    default: "36.1.0"
+  android-ndk:
+    description: Android NDK version to install
+    required: false
+    default: "25.2.9519653"
+  android-sdk-root:
+    description: Android SDK installation root
+    required: false
+    default: ""
+  cache-key-suffix:
+    description: Optional suffix to bump cache generation manually
+    required: false
+    default: "v1"
+
+runs:
+  using: composite
+  steps:
+    - name: Compute Android paths
+      id: vars
+      shell: bash
+      env:
+        INPUT_ANDROID_SDK_ROOT: ${{ inputs.android-sdk-root }}
+        RUNNER_ARCH: ${{ runner.arch }}
+        RUNNER_ENVIRONMENT: ${{ runner.environment }}
+        RUNNER_TEMP_DIR: ${{ runner.temp }}
+      run: |
+        set -euo pipefail
+
+        SDK_ROOT="${INPUT_ANDROID_SDK_ROOT}"
+        API_LEVEL="${{ inputs.android-api-level }}"
+        BUILD_TOOLS="${{ inputs.android-build-tools }}"
+        NDK_VERSION="${{ inputs.android-ndk }}"
+
+        if [ -z "${SDK_ROOT}" ]; then
+          if [ "${RUNNER_ENVIRONMENT}" = "github-hosted" ]; then
+            SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/.android/sdk}}"
+          else
+            SDK_ROOT="${RUNNER_TEMP_DIR}/android-sdk"
+          fi
+        fi
+
+        echo "sdk-root=${SDK_ROOT}" >> "$GITHUB_OUTPUT"
+        echo "runner-arch=${RUNNER_ARCH}" >> "$GITHUB_OUTPUT"
+        echo "api-level=${API_LEVEL}" >> "$GITHUB_OUTPUT"
+        echo "build-tools=${BUILD_TOOLS}" >> "$GITHUB_OUTPUT"
+        echo "ndk-version=${NDK_VERSION}" >> "$GITHUB_OUTPUT"
+        echo "ndk-root=${SDK_ROOT}/ndk/${NDK_VERSION}" >> "$GITHUB_OUTPUT"
+
+    - name: Restore Android SDK cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.vars.outputs.sdk-root }}
+        key: ${{ runner.os }}-${{ steps.vars.outputs.runner-arch }}-android-sdk-api-${{ steps.vars.outputs.api-level }}-buildtools-${{ steps.vars.outputs.build-tools }}-ndk-${{ steps.vars.outputs.ndk-version }}-${{ inputs.cache-key-suffix }}
+        restore-keys: |
+          ${{ runner.os }}-${{ steps.vars.outputs.runner-arch }}-android-sdk-api-${{ steps.vars.outputs.api-level }}-buildtools-${{ steps.vars.outputs.build-tools }}-ndk-
+          ${{ runner.os }}-${{ steps.vars.outputs.runner-arch }}-android-sdk-api-${{ steps.vars.outputs.api-level }}-buildtools-${{ steps.vars.outputs.build-tools }}-
+          ${{ runner.os }}-${{ steps.vars.outputs.runner-arch }}-android-sdk-api-${{ steps.vars.outputs.api-level }}-
+          ${{ runner.os }}-${{ steps.vars.outputs.runner-arch }}-android-sdk-
+
+    - name: Export Android environment variables
+      shell: bash
+      run: |
+        SDK_ROOT="${{ steps.vars.outputs.sdk-root }}"
+        NDK_ROOT="${{ steps.vars.outputs.ndk-root }}"
+        BUILD_TOOLS="${{ steps.vars.outputs.build-tools }}"
+
+        {
+          echo "ANDROID_HOME=${SDK_ROOT}"
+          echo "ANDROID_SDK_ROOT=${SDK_ROOT}"
+          echo "ANDROID_NDK_HOME=${NDK_ROOT}"
+          echo "ANDROID_NDK_ROOT=${NDK_ROOT}"
+        } >> "$GITHUB_ENV"
+
+        {
+          echo "${SDK_ROOT}/platform-tools"
+          echo "${SDK_ROOT}/cmdline-tools/latest/bin"
+          echo "${SDK_ROOT}/build-tools/${BUILD_TOOLS}"
+        } >> "$GITHUB_PATH"
+
+    - name: Set up Android SDK tools
+      uses: android-actions/setup-android@v3
+      with:
+        packages: ""
+
+    - name: Install requested Android SDK packages
+      shell: bash
+      env:
+        ANDROID_SDK_ROOT: ${{ steps.vars.outputs.sdk-root }}
+        ANDROID_API_LEVEL: ${{ steps.vars.outputs.api-level }}
+        ANDROID_BUILD_TOOLS: ${{ steps.vars.outputs.build-tools }}
+        ANDROID_NDK: ${{ steps.vars.outputs.ndk-version }}
+      run: |
+        sdkmanager --sdk_root="${ANDROID_SDK_ROOT}" --install \
+          "platform-tools" \
+          "platforms;android-${ANDROID_API_LEVEL}" \
+          "build-tools;${ANDROID_BUILD_TOOLS}" \
+          "ndk;${ANDROID_NDK}"
+
+    - name: Refresh Android environment variables and PATH
+      shell: bash
+      run: |
+        SDK_ROOT="${{ steps.vars.outputs.sdk-root }}"
+        NDK_ROOT="${{ steps.vars.outputs.ndk-root }}"
+        BUILD_TOOLS="${{ steps.vars.outputs.build-tools }}"
+
+        {
+          echo "ANDROID_HOME=${SDK_ROOT}"
+          echo "ANDROID_SDK_ROOT=${SDK_ROOT}"
+          echo "ANDROID_NDK_HOME=${NDK_ROOT}"
+          echo "ANDROID_NDK_ROOT=${NDK_ROOT}"
+        } >> "$GITHUB_ENV"
+
+        {
+          echo "${SDK_ROOT}/platform-tools"
+          echo "${SDK_ROOT}/cmdline-tools/latest/bin"
+          echo "${SDK_ROOT}/build-tools/${BUILD_TOOLS}"
+        } >> "$GITHUB_PATH"
+
+    - name: Verify Android SDK installation
+      shell: bash
+      env:
+        ANDROID_SDK_ROOT: ${{ steps.vars.outputs.sdk-root }}
+        ANDROID_API_LEVEL: ${{ steps.vars.outputs.api-level }}
+        ANDROID_BUILD_TOOLS: ${{ steps.vars.outputs.build-tools }}
+        ANDROID_NDK: ${{ steps.vars.outputs.ndk-version }}
+      run: |
+        echo "ANDROID_HOME=${ANDROID_HOME}"
+        echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT}"
+        echo "ANDROID_NDK_HOME=${ANDROID_NDK_HOME}"
+        echo "ANDROID_NDK_ROOT=${ANDROID_NDK_ROOT}"
+
+        which adb
+        which sdkmanager
+
+        adb version
+        sdkmanager --sdk_root="${ANDROID_SDK_ROOT}" --list_installed
+
+        test -x "${ANDROID_SDK_ROOT}/platform-tools/adb"
+        test -d "${ANDROID_SDK_ROOT}/platforms/android-${ANDROID_API_LEVEL}"
+        test -d "${ANDROID_SDK_ROOT}/build-tools/${ANDROID_BUILD_TOOLS}"
+        test -d "${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK}"
