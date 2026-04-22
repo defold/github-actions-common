@@ -45,14 +45,14 @@ on:
       ignored_platforms:
         required: false
         type: string
-        description: 'JSON-like string with list of ignored platforms' # [{"platform": "wasm_pthread-web"}, {"platform": "js-web"}]
+        description: 'JSON-like string with list of ignored platforms' # [{"platform": "wasm_pthread-web"}, {"platform": "wasm-web"}]
         default: '[]'
 
 jobs:
   build_with_bob:
     strategy:
       matrix:
-        platform: [armv7-android, arm64-android, x86_64-linux, arm64-linux, js-web, wasm-web, wasm_pthread-web]
+        platform: [armv7-android, arm64-android, x86_64-linux, arm64-linux, wasm-web, wasm_pthread-web]
         exclude: ${{ fromJSON(inputs.ignored_platforms) }}
       fail-fast: false
     runs-on: ${{ inputs.ubuntu_runner }}
