@@ -74,11 +74,33 @@ jobs:
         if: ${{ inputs.bob_jar_url == '' }}
         id: defold_version
         run: |
-          TMPVAR=`curl -s http://d.defold.com/${{ inputs.channel }}/${{ inputs.bob_version_filename }} | jq -r '.sha1'`
-          echo "defold_version=${TMPVAR}" >> $GITHUB_OUTPUT
+          TMPVAR=$(curl -s http://d.defold.com/${{ inputs.channel }}/${{ inputs.bob_version_filename }} | jq -r '.sha1')
+          echo "defold_version=${TMPVAR}" >> "$GITHUB_OUTPUT"
           echo "Found version ${TMPVAR}"
 
+      - name: Get bob.jar cache key
+        id: bob_cache_key
+        env:
+          BOB_JAR_URL: ${{ inputs.bob_jar_url }}
+          DEFOLD_VERSION: ${{ steps.defold_version.outputs.defold_version }}
+        run: |
+          if [ -n "$BOB_JAR_URL" ]; then
+            URL_HASH=$(printf '%s' "$BOB_JAR_URL" | sha256sum | cut -d ' ' -f1)
+            echo "key=bob-jar-url-${URL_HASH}" >> "$GITHUB_OUTPUT"
+          else
+            echo "key=bob-jar-${{ inputs.channel }}-${DEFOLD_VERSION}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore bob.jar from cache
+        id: bob_cache
+        uses: actions/cache/restore@v4
+        with:
+          path: bob.jar
+          key: ${{ steps.bob_cache_key.outputs.key }}
+          enableCrossOsArchive: true
+
       - name: Download bob.jar
+        if: ${{ steps.bob_cache.outputs.cache-hit != 'true' }}
         env:
           BOB_JAR_URL: ${{ inputs.bob_jar_url }}
           DEFOLD_VERSION: ${{ steps.defold_version.outputs.defold_version }}
@@ -88,6 +110,18 @@ jobs:
           else
             curl -fsSL -o bob.jar "http://d.defold.com/archive/${{ inputs.channel }}/${DEFOLD_VERSION}/bob/bob.jar"
           fi
+
+      - name: Save bob.jar to cache
+        if: ${{ steps.bob_cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        continue-on-error: true
+        with:
+          path: bob.jar
+          key: ${{ steps.bob_cache_key.outputs.key }}
+          enableCrossOsArchive: true
+
+      - name: Print bob.jar version
+        run: |
           java -jar bob.jar --version
 
       - name: Installing Shared Library Dependencies
@@ -126,12 +160,35 @@ jobs:
         if: ${{ inputs.bob_jar_url == '' }}
         id: defold_version
         run: |
-          TMPVAR=`curl -s http://d.defold.com/${{ inputs.channel }}/${{ inputs.bob_version_filename }} | jq -r '.sha1'`
-          echo "defold_version=${TMPVAR}" >> $GITHUB_OUTPUT
+          TMPVAR=$(curl -s http://d.defold.com/${{ inputs.channel }}/${{ inputs.bob_version_filename }} | jq -r '.sha1')
+          echo "defold_version=${TMPVAR}" >> "$GITHUB_OUTPUT"
           echo "Found version ${TMPVAR}"
         shell: bash
 
+      - name: Get bob.jar cache key
+        id: bob_cache_key
+        env:
+          BOB_JAR_URL: ${{ inputs.bob_jar_url }}
+          DEFOLD_VERSION: ${{ steps.defold_version.outputs.defold_version }}
+        run: |
+          if [ -n "$BOB_JAR_URL" ]; then
+            URL_HASH=$(printf '%s' "$BOB_JAR_URL" | sha256sum | cut -d ' ' -f1)
+            echo "key=bob-jar-url-${URL_HASH}" >> "$GITHUB_OUTPUT"
+          else
+            echo "key=bob-jar-${{ inputs.channel }}-${DEFOLD_VERSION}" >> "$GITHUB_OUTPUT"
+          fi
+        shell: bash
+
+      - name: Restore bob.jar from cache
+        id: bob_cache
+        uses: actions/cache/restore@v4
+        with:
+          path: bob.jar
+          key: ${{ steps.bob_cache_key.outputs.key }}
+          enableCrossOsArchive: true
+
       - name: Download bob.jar
+        if: ${{ steps.bob_cache.outputs.cache-hit != 'true' }}
         env:
           BOB_JAR_URL: ${{ inputs.bob_jar_url }}
           DEFOLD_VERSION: ${{ steps.defold_version.outputs.defold_version }}
@@ -141,8 +198,19 @@ jobs:
           else
             curl -fsSL -o bob.jar "http://d.defold.com/archive/${{ inputs.channel }}/${DEFOLD_VERSION}/bob/bob.jar"
           fi
-          java -jar bob.jar --version
         shell: bash
+
+      - name: Save bob.jar to cache
+        if: ${{ steps.bob_cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        continue-on-error: true
+        with:
+          path: bob.jar
+          key: ${{ steps.bob_cache_key.outputs.key }}
+          enableCrossOsArchive: true
+
+      - name: Print bob.jar version
+        run: java -jar bob.jar --version
 
       - name: Resolve libraries
         run: java -jar bob.jar resolve
@@ -176,11 +244,33 @@ jobs:
         if: ${{ inputs.bob_jar_url == '' }}
         id: defold_version
         run: |
-          TMPVAR=`curl -s http://d.defold.com/${{ inputs.channel }}/${{ inputs.bob_version_filename }} | jq -r '.sha1'`
-          echo "defold_version=${TMPVAR}" >> $GITHUB_OUTPUT
+          TMPVAR=$(curl -s http://d.defold.com/${{ inputs.channel }}/${{ inputs.bob_version_filename }} | jq -r '.sha1')
+          echo "defold_version=${TMPVAR}" >> "$GITHUB_OUTPUT"
           echo "Found version ${TMPVAR}"
 
+      - name: Get bob.jar cache key
+        id: bob_cache_key
+        env:
+          BOB_JAR_URL: ${{ inputs.bob_jar_url }}
+          DEFOLD_VERSION: ${{ steps.defold_version.outputs.defold_version }}
+        run: |
+          if [ -n "$BOB_JAR_URL" ]; then
+            URL_HASH=$(printf '%s' "$BOB_JAR_URL" | shasum -a 256 | cut -d ' ' -f1)
+            echo "key=bob-jar-url-${URL_HASH}" >> "$GITHUB_OUTPUT"
+          else
+            echo "key=bob-jar-${{ inputs.channel }}-${DEFOLD_VERSION}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore bob.jar from cache
+        id: bob_cache
+        uses: actions/cache/restore@v4
+        with:
+          path: bob.jar
+          key: ${{ steps.bob_cache_key.outputs.key }}
+          enableCrossOsArchive: true
+
       - name: Download bob.jar
+        if: ${{ steps.bob_cache.outputs.cache-hit != 'true' }}
         env:
           BOB_JAR_URL: ${{ inputs.bob_jar_url }}
           DEFOLD_VERSION: ${{ steps.defold_version.outputs.defold_version }}
@@ -190,6 +280,18 @@ jobs:
           else
             curl -fsSL -o bob.jar "http://d.defold.com/archive/${{ inputs.channel }}/${DEFOLD_VERSION}/bob/bob.jar"
           fi
+
+      - name: Save bob.jar to cache
+        if: ${{ steps.bob_cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        continue-on-error: true
+        with:
+          path: bob.jar
+          key: ${{ steps.bob_cache_key.outputs.key }}
+          enableCrossOsArchive: true
+
+      - name: Print bob.jar version
+        run: |
           java -jar bob.jar --version
 
       - name: Resolve libraries
