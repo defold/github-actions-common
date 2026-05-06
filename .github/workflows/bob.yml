@@ -33,6 +33,11 @@ on:
         type: string
         description: 'JSON filename withi Bob versions'
         default: 'info.json'
+      bob_jar_url:
+        required: false
+        type: string
+        description: 'Direct URL to bob.jar. If set, channel and bob_version_filename are ignored.'
+        default: ''
       additonal_build_options:
         required: false
         type: string
@@ -66,6 +71,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Get Defold version
+        if: ${{ inputs.bob_jar_url == '' }}
         id: defold_version
         run: |
           TMPVAR=`curl -s http://d.defold.com/${{ inputs.channel }}/${{ inputs.bob_version_filename }} | jq -r '.sha1'`
@@ -73,8 +79,15 @@ jobs:
           echo "Found version ${TMPVAR}"
 
       - name: Download bob.jar
+        env:
+          BOB_JAR_URL: ${{ inputs.bob_jar_url }}
+          DEFOLD_VERSION: ${{ steps.defold_version.outputs.defold_version }}
         run: |
-          wget -q http://d.defold.com/archive/${{ inputs.channel }}/${{ steps.defold_version.outputs.defold_version }}/bob/bob.jar
+          if [ -n "$BOB_JAR_URL" ]; then
+            curl -fsSL -o bob.jar "$BOB_JAR_URL"
+          else
+            curl -fsSL -o bob.jar "http://d.defold.com/archive/${{ inputs.channel }}/${DEFOLD_VERSION}/bob/bob.jar"
+          fi
           java -jar bob.jar --version
 
       - name: Installing Shared Library Dependencies
@@ -110,6 +123,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Get Defold version
+        if: ${{ inputs.bob_jar_url == '' }}
         id: defold_version
         run: |
           TMPVAR=`curl -s http://d.defold.com/${{ inputs.channel }}/${{ inputs.bob_version_filename }} | jq -r '.sha1'`
@@ -118,9 +132,17 @@ jobs:
         shell: bash
 
       - name: Download bob.jar
+        env:
+          BOB_JAR_URL: ${{ inputs.bob_jar_url }}
+          DEFOLD_VERSION: ${{ steps.defold_version.outputs.defold_version }}
         run: |
-          curl -s -o bob.jar http://d.defold.com/archive/${{ inputs.channel }}/${{ steps.defold_version.outputs.defold_version }}/bob/bob.jar
+          if [ -n "$BOB_JAR_URL" ]; then
+            curl -fsSL -o bob.jar "$BOB_JAR_URL"
+          else
+            curl -fsSL -o bob.jar "http://d.defold.com/archive/${{ inputs.channel }}/${DEFOLD_VERSION}/bob/bob.jar"
+          fi
           java -jar bob.jar --version
+        shell: bash
 
       - name: Resolve libraries
         run: java -jar bob.jar resolve
@@ -151,6 +173,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Get Defold version
+        if: ${{ inputs.bob_jar_url == '' }}
         id: defold_version
         run: |
           TMPVAR=`curl -s http://d.defold.com/${{ inputs.channel }}/${{ inputs.bob_version_filename }} | jq -r '.sha1'`
@@ -158,8 +181,15 @@ jobs:
           echo "Found version ${TMPVAR}"
 
       - name: Download bob.jar
+        env:
+          BOB_JAR_URL: ${{ inputs.bob_jar_url }}
+          DEFOLD_VERSION: ${{ steps.defold_version.outputs.defold_version }}
         run: |
-          wget -q http://d.defold.com/archive/${{ inputs.channel }}/${{ steps.defold_version.outputs.defold_version }}/bob/bob.jar
+          if [ -n "$BOB_JAR_URL" ]; then
+            curl -fsSL -o bob.jar "$BOB_JAR_URL"
+          else
+            curl -fsSL -o bob.jar "http://d.defold.com/archive/${{ inputs.channel }}/${DEFOLD_VERSION}/bob/bob.jar"
+          fi
           java -jar bob.jar --version
 
       - name: Resolve libraries
