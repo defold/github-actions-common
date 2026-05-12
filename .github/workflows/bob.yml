@@ -93,7 +93,7 @@ jobs:
 
       - name: Restore bob.jar from cache
         id: bob_cache
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: bob.jar
           key: ${{ steps.bob_cache_key.outputs.key }}
@@ -113,7 +113,7 @@ jobs:
 
       - name: Save bob.jar to cache
         if: ${{ steps.bob_cache.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         continue-on-error: true
         with:
           path: bob.jar
@@ -181,7 +181,7 @@ jobs:
 
       - name: Restore bob.jar from cache
         id: bob_cache
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: bob.jar
           key: ${{ steps.bob_cache_key.outputs.key }}
@@ -202,7 +202,7 @@ jobs:
 
       - name: Save bob.jar to cache
         if: ${{ steps.bob_cache.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         continue-on-error: true
         with:
           path: bob.jar
@@ -263,7 +263,7 @@ jobs:
 
       - name: Restore bob.jar from cache
         id: bob_cache
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: bob.jar
           key: ${{ steps.bob_cache_key.outputs.key }}
@@ -283,7 +283,7 @@ jobs:
 
       - name: Save bob.jar to cache
         if: ${{ steps.bob_cache.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         continue-on-error: true
         with:
           path: bob.jar
