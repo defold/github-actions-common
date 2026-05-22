@@ -53,7 +53,7 @@ runs:
         echo "ndk-root=${SDK_ROOT}/ndk/${NDK_VERSION}" >> "$GITHUB_OUTPUT"
 
     - name: Restore Android SDK cache
-      uses: actions/cache@v4
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
         path: ${{ steps.vars.outputs.sdk-root }}
         key: ${{ runner.os }}-${{ steps.vars.outputs.runner-arch }}-android-sdk-api-${{ steps.vars.outputs.api-level }}-buildtools-${{ steps.vars.outputs.build-tools }}-ndk-${{ steps.vars.outputs.ndk-version }}-${{ inputs.cache-key-suffix }}
@@ -84,7 +84,7 @@ runs:
         } >> "$GITHUB_PATH"
 
     - name: Set up Android SDK tools
-      uses: android-actions/setup-android@v3
+      uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
       with:
         packages: ""
 
