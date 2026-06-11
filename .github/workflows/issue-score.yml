@@ -105,9 +105,6 @@ jobs:
             if (!sizeField || !priorityField || !scoreField) {
               throw new Error("Repository is missing inherited issue fields: Size, Priority, or Score");
             }
-            if (scoreField.dataType !== "NUMBER") {
-              throw new Error("Score must be a number issue field");
-            }
 
             const values = new Map(issue.issueFieldValues.nodes.map((node) => [fieldName(node), fieldValue(node)]));
             if (!values.has("Size") || !values.has("Priority")) {
