@@ -142,5 +142,5 @@ jobs:
             await github.graphql(mutation, {
               issueId: issue.id,
               fieldId: scoreField.id,
-              String(score)
+              textValue: String(score)
             });
