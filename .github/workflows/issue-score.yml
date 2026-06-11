@@ -93,3 +93,17 @@ jobs:
                 }
               }
             `;
+
+            const result = await github.graphql(query, { owner, repo, issueNumber });
+            const issue = result.repository.issue;
+            if (!issue) {
+              throw new Error(`Issue #${issueNumber} was not found`);
+            }
+
+            const fields = new Map(result.repository.issueFields.nodes.map(function(field) { return [field.name, field]; } ));
+            const sizeField = fields.get("Size");
+            const priorityField = fields.get("Priority");
+            const scoreField = fields.get("Score");
+            if (!sizeField || !priorityField || !scoreField) {
+              throw new Error("Repository is missing inherited issue fields: Size, Priority, or Score");
+            }
