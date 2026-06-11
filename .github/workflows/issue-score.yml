@@ -132,7 +132,7 @@ jobs:
 
             const size = toNumber(values.get("Size"), "Size");
             const priority = toNumber(values.get("Priority"), "Priority");
-            const score = size + priority;
+            const score = (priority * priority) / size;
             const currentScore = values.has("Score") ? toNumber(values.get("Score"), "Score") : undefined;
             if (currentScore === score) {
               core.info(`Issue #${issueNumber} already has Score ${score}`);
