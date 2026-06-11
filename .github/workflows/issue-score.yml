@@ -1,0 +1,159 @@
+name: Update issue score
+
+on:
+  issues:
+    types:
+      - edited
+
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        required: true
+        type: number
+        description: Issue number to update
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  update-score:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.PROJECT_TOKEN || github.token }}
+    steps:
+      - name: Update Score field
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ env.GH_TOKEN }}
+          script: |
+            const issueNumber = context.payload.issue?.number ?? Number(context.payload.inputs.issue_number);
+            const [owner, repo] = process.env.GITHUB_REPOSITORY.split("/");
+
+            const toNumber = (value, fieldName) => {
+              const number = Number(value);
+              if (!Number.isFinite(number)) {
+                throw new Error(`${fieldName} must be numeric, got: ${value}`);
+              }
+              return number;
+            };
+
+            const fieldName = (node) => node.field?.name;
+            const fieldValue = (node) => {
+              if ("value" in node) return node.value;
+              if ("name" in node) return node.name;
+              return undefined;
+            };
+
+            const query = `
+              query($owner: String!, $repo: String!, $issueNumber: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  issueFields(first: 100) {
+                    nodes {
+                      ... on IssueFieldNumber {
+                        id
+                        name
+                        dataType
+                      }
+                      ... on IssueFieldText {
+                        id
+                        name
+                        dataType
+                      }
+                      ... on IssueFieldSingleSelect {
+                        id
+                        name
+                        dataType
+                      }
+                    }
+                  }
+                  issue(number: $issueNumber) {
+                    id
+                    issueFieldValues(first: 100) {
+                      nodes {
+                        ... on IssueFieldNumberValue {
+                          value
+                          field {
+                            ... on IssueFieldCommon {
+                              name
+                            }
+                          }
+                        }
+                        ... on IssueFieldTextValue {
+                          value
+                          field {
+                            ... on IssueFieldCommon {
+                              name
+                            }
+                          }
+                        }
+                        ... on IssueFieldSingleSelectValue {
+                          value
+                          field {
+                            ... on IssueFieldCommon {
+                              name
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const result = await github.graphql(query, { owner, repo, issueNumber });
+            const issue = result.repository.issue;
+            if (!issue) {
+              throw new Error(`Issue #${issueNumber} was not found`);
+            }
+
+            const fields = new Map(result.repository.issueFields.nodes.map((field) => [field.name, field]));
+            const sizeField = fields.get("Size");
+            const priorityField = fields.get("Priority");
+            const scoreField = fields.get("Score");
+            if (!sizeField || !priorityField || !scoreField) {
+              throw new Error("Repository is missing inherited issue fields: Size, Priority, or Score");
+            }
+            if (scoreField.dataType !== "NUMBER") {
+              throw new Error("Score must be a number issue field");
+            }
+
+            const values = new Map(issue.issueFieldValues.nodes.map((node) => [fieldName(node), fieldValue(node)]));
+            if (!values.has("Size") || !values.has("Priority")) {
+              core.info(`Issue #${issueNumber} does not have both Size and Priority set`);
+              return;
+            }
+
+            const mutation = `
+              mutation($issueId: ID!, $fieldId: ID!, $score: Float!) {
+                setIssueFieldValue(input: {
+                  issueId: $issueId
+                  issueFields: [{
+                    fieldId: $fieldId
+                    numberValue: $score
+                  }]
+                }) {
+                  issue {
+                    id
+                  }
+                }
+              }
+            `;
+
+            const size = toNumber(values.get("Size"), "Size");
+            const priority = toNumber(values.get("Priority"), "Priority");
+            const score = size + priority;
+            const currentScore = values.has("Score") ? toNumber(values.get("Score"), "Score") : undefined;
+            if (currentScore === score) {
+              core.info(`Issue #${issueNumber} already has Score ${score}`);
+              return;
+            }
+
+            await github.graphql(mutation, {
+              issueId: issue.id,
+              fieldId: scoreField.id,
+              score,
+            });
+
+            core.info(`Updated issue #${issueNumber} Score to ${score}`);
