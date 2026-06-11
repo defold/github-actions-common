@@ -3,7 +3,7 @@ name: Update issue score
 on:
   issues:
     types:
-      - edited
+      - field_added
 
   workflow_dispatch:
     inputs:
