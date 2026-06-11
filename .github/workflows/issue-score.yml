@@ -138,3 +138,9 @@ jobs:
               core.info(`Issue #${issueNumber} already has Score ${score}`);
               return;
             }
+
+            await github.graphql(mutation, {
+              issueId: issue.id,
+              fieldId: scoreField.id,
+              String(score)
+            });
