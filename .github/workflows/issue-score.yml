@@ -27,3 +27,69 @@ jobs:
               }
               return number;
             };
+
+            const fieldName = function(node) {
+              return node.field?.name;
+            };
+            const fieldValue = function(node) {
+              if ("value" in node) { return node.value };
+              if ("name" in node) { return node.name };
+              return undefined;
+            };
+
+            const query = `
+              query($owner: String!, $repo: String!, $issueNumber: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  issueFields(first: 100) {
+                    nodes {
+                      ... on IssueFieldNumber {
+                        id
+                        name
+                        dataType
+                      }
+                      ... on IssueFieldText {
+                        id
+                        name
+                        dataType
+                      }
+                      ... on IssueFieldSingleSelect {
+                        id
+                        name
+                        dataType
+                      }
+                    }
+                  }
+                  issue(number: $issueNumber) {
+                    id
+                    issueFieldValues(first: 100) {
+                      nodes {
+                        ... on IssueFieldNumberValue {
+                          value
+                          field {
+                            ... on IssueFieldCommon {
+                              name
+                            }
+                          }
+                        }
+                        ... on IssueFieldTextValue {
+                          value
+                          field {
+                            ... on IssueFieldCommon {
+                              name
+                            }
+                          }
+                        }
+                        ... on IssueFieldSingleSelectValue {
+                          value
+                          field {
+                            ... on IssueFieldCommon {
+                              name
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
