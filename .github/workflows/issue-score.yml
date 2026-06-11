@@ -142,7 +142,7 @@ jobs:
             await github.graphql(mutation, {
               issueId: issue.id,
               fieldId: scoreField.id,
-              textValue: String(score)
+              score: String(score)
             });
 
             core.info(`Updated issue #${issueNumber} Score to ${score}`);
