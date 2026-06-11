@@ -115,7 +115,7 @@ jobs:
             }
 
             const mutation = `
-              mutation($issueId: ID!, $fieldId: ID!, $score: Float!) {
+              mutation($issueId: ID!, $fieldId: ID!, $score: String!) {
                 setIssueFieldValue(input: {
                   issueId: $issueId
                   issueFields: [{
