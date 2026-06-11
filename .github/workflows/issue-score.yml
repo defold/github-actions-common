@@ -37,7 +37,7 @@ jobs:
               return undefined;
             };
 
-            const query = "
+            const query = `
               query($owner: String!, $repo: String!, $issueNumber: Int!) {
                 repository(owner: $owner, name: $repo) {
                   issueFields(first: 100) {
@@ -92,7 +92,7 @@ jobs:
                   }
                 }
               }
-            ";
+            `;
 
             const result = await github.graphql(query, { owner, repo, issueNumber });
             const issue = result.repository.issue;
@@ -114,7 +114,7 @@ jobs:
               return;
             }
 
-            const mutation = "
+            const mutation = `
               mutation($issueId: ID!, $fieldId: ID!, $score: Float!) {
                 setIssueFieldValue(input: {
                   issueId: $issueId
@@ -128,7 +128,7 @@ jobs:
                   }
                 }
               }
-            ";
+            `;
 
             const size = toNumber(values.get("Size"), "Size");
             const priority = toNumber(values.get("Priority"), "Priority");
