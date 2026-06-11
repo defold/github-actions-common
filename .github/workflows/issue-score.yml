@@ -144,3 +144,5 @@ jobs:
               fieldId: scoreField.id,
               textValue: String(score)
             });
+
+            core.info(`Updated issue #${issueNumber} Score to ${score}`);
