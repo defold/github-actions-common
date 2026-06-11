@@ -115,7 +115,7 @@ jobs:
             }
 
             const mutation = `
-              mutation($issueId: ID!, $fieldId: ID!, $score: String!) {
+              mutation($issueId: ID!, $fieldId: ID!, $score: Float!) {
                 setIssueFieldValue(input: {
                   issueId: $issueId
                   issueFields: [{
@@ -142,7 +142,7 @@ jobs:
             await github.graphql(mutation, {
               issueId: issue.id,
               fieldId: scoreField.id,
-              score: String(score)
+              score: score
             });
 
             core.info(`Updated issue #${issueNumber} Score to ${score}`);
