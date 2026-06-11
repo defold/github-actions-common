@@ -107,3 +107,25 @@ jobs:
             if (!sizeField || !priorityField || !scoreField) {
               throw new Error("Repository is missing inherited issue fields: Size, Priority, or Score");
             }
+
+            const values = new Map(issue.issueFieldValues.nodes.map(function(node) { [fieldName(node), fieldValue(node)]; } ));
+            if (!values.has("Size") || !values.has("Priority")) {
+              core.info(`Issue #${issueNumber} does not have both Size and Priority set`);
+              return;
+            }
+
+            const mutation = `
+              mutation($issueId: ID!, $fieldId: ID!, $score: Float!) {
+                setIssueFieldValue(input: {
+                  issueId: $issueId
+                  issueFields: [{
+                    fieldId: $fieldId
+                    textValue: $score
+                  }]
+                }) {
+                  issue {
+                    id
+                  }
+                }
+              }
+            `;
