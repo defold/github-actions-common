@@ -5,7 +5,7 @@ on:
     types:
       - field_added
 
-  workflow_dispatch:
+  workflow_call:
     inputs:
       issue_number:
         required: true
