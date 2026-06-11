@@ -20,7 +20,7 @@ jobs:
             const issueNumber = context.payload.issue?.number ?? Number(context.payload.inputs.issue_number);
             const [owner, repo] = process.env.GITHUB_REPOSITORY.split("/");
 
-            const toNumber = (value, fieldName) => {
+            const toNumber = function(value, fieldName) {
               const number = Number(value);
               if (!Number.isFinite(number)) {
                 throw new Error(`${fieldName} must be numeric, got: ${value}`);
@@ -28,14 +28,16 @@ jobs:
               return number;
             };
 
-            const fieldName = (node) => node.field?.name;
-            const fieldValue = (node) => {
+            const fieldName = function(node) {
+              return node.field?.name;
+            };
+            const fieldValue = function(node) {
               if ("value" in node) { return node.value };
               if ("name" in node) { return node.name };
               return undefined;
             };
 
-            const query = `
+            const query = "
               query($owner: String!, $repo: String!, $issueNumber: Int!) {
                 repository(owner: $owner, name: $repo) {
                   issueFields(first: 100) {
@@ -90,7 +92,7 @@ jobs:
                   }
                 }
               }
-            `;
+            ";
 
             const result = await github.graphql(query, { owner, repo, issueNumber });
             const issue = result.repository.issue;
@@ -98,7 +100,7 @@ jobs:
               throw new Error(`Issue #${issueNumber} was not found`);
             }
 
-            const fields = new Map(result.repository.issueFields.nodes.map((field) => [field.name, field]));
+            const fields = new Map(result.repository.issueFields.nodes.map(function(field) { return [field.name, field]; } ));
             const sizeField = fields.get("Size");
             const priorityField = fields.get("Priority");
             const scoreField = fields.get("Score");
@@ -106,13 +108,13 @@ jobs:
               throw new Error("Repository is missing inherited issue fields: Size, Priority, or Score");
             }
 
-            const values = new Map(issue.issueFieldValues.nodes.map((node) => [fieldName(node), fieldValue(node)]));
+            const values = new Map(issue.issueFieldValues.nodes.map(function(node) { [fieldName(node), fieldValue(node)]; } ));
             if (!values.has("Size") || !values.has("Priority")) {
               core.info(`Issue #${issueNumber} does not have both Size and Priority set`);
               return;
             }
 
-            const mutation = `
+            const mutation = "
               mutation($issueId: ID!, $fieldId: ID!, $score: Float!) {
                 setIssueFieldValue(input: {
                   issueId: $issueId
@@ -126,7 +128,7 @@ jobs:
                   }
                 }
               }
-            `;
+            ";
 
             const size = toNumber(values.get("Size"), "Size");
             const priority = toNumber(values.get("Priority"), "Priority");
