@@ -30,8 +30,8 @@ jobs:
 
             const fieldName = (node) => node.field?.name;
             const fieldValue = (node) => {
-              if ("value" in node) return node.value;
-              if ("name" in node) return node.name;
+              if ("value" in node) { return node.value };
+              if ("name" in node) { return node.name };
               return undefined;
             };
 
