@@ -120,7 +120,7 @@ jobs:
                   issueId: $issueId
                   issueFields: [{
                     fieldId: $fieldId
-                    textValue: $score
+                    numberValue: $score
                   }]
                 }) {
                   issue {
