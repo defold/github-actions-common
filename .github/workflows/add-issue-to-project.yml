@@ -74,16 +74,18 @@ jobs:
               throw new Error(`project_number must be an integer, got: ${process.env.PROJECT_NUMBER}`);
             }
 
+            const ownerResponse = await github.rest.users.getByUsername({
+              username: projectOwner
+            });
+            const ownerType = ownerResponse.data.type;
+            const ownerField = ownerType === "Organization" ? "organization" : "user";
+            if (!["Organization", "User"].includes(ownerType)) {
+              throw new Error(`Project owner ${projectOwner} must be a user or organization, got: ${ownerType}`);
+            }
+
             const query = `
               query($projectOwner: String!, $projectNumber: Int!, $issueNodeId: ID!) {
-                organization(login: $projectOwner) {
-                  projectV2(number: $projectNumber) {
-                    id
-                    title
-                    url
-                  }
-                }
-                user(login: $projectOwner) {
+                projectOwner: ${ownerField}(login: $projectOwner) {
                   projectV2(number: $projectNumber) {
                     id
                     title
@@ -113,7 +115,7 @@ jobs:
               issueNodeId
             });
 
-            const project = result.organization?.projectV2 || result.user?.projectV2;
+            const project = result.projectOwner?.projectV2;
             if (!project) {
               throw new Error(`Project ${projectOwner}/${projectNumber} was not found or the token cannot access it.`);
             }
