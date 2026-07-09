@@ -1,0 +1,152 @@
+# Reusable workflow that adds an issue to a GitHub Project v2.
+# Usage (from another repository workflow):
+# name: Add new issues to project
+# on:
+#   issues:
+#     types: [opened]
+# jobs:
+#   add-issue-to-project:
+#     uses: defold/github-actions-common/.github/workflows/add-issue-to-project.yml@<ref>
+#     with:
+#       project_owner: defold
+#       project_number: 1
+#     secrets:
+#       PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+#
+# PROJECT_TOKEN should be a PAT or GitHub App token with write access to the
+# target Project and read access to the issue repository. If omitted, the
+# workflow falls back to github.token.
+
+name: Add issue to project
+
+on:
+  workflow_call:
+    inputs:
+      project_owner:
+        required: true
+        type: string
+        description: "User or organization login that owns the target Project."
+      project_number:
+        required: true
+        type: number
+        description: "Target Project v2 number."
+      issue_node_id:
+        required: false
+        type: string
+        default: ""
+        description: "Issue node ID. Defaults to the issue from the caller event payload."
+      runner:
+        required: false
+        type: string
+        default: ubuntu-latest
+        description: "Runner used for the workflow job."
+    secrets:
+      PROJECT_TOKEN:
+        required: false
+        description: "PAT or GitHub App token with write access to the target Project and read access to the issue repository."
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  add-issue-to-project:
+    runs-on: ${{ inputs.runner }}
+    env:
+      GH_TOKEN: ${{ secrets.PROJECT_TOKEN || github.token }}
+      ISSUE_NODE_ID: ${{ inputs.issue_node_id }}
+      PROJECT_OWNER: ${{ inputs.project_owner }}
+      PROJECT_NUMBER: ${{ inputs.project_number }}
+    steps:
+      - name: Add issue to project
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ env.GH_TOKEN }}
+          script: |
+            const issueNodeId = process.env.ISSUE_NODE_ID || context.payload.issue?.node_id;
+            if (!issueNodeId) {
+              throw new Error("No issue node ID found. Trigger the caller workflow from an issue event or pass issue_node_id.");
+            }
+
+            const projectOwner = process.env.PROJECT_OWNER;
+            const projectNumber = Number(process.env.PROJECT_NUMBER);
+            if (!Number.isInteger(projectNumber)) {
+              throw new Error(`project_number must be an integer, got: ${process.env.PROJECT_NUMBER}`);
+            }
+
+            const query = `
+              query($projectOwner: String!, $projectNumber: Int!, $issueNodeId: ID!) {
+                organization(login: $projectOwner) {
+                  projectV2(number: $projectNumber) {
+                    id
+                    title
+                    url
+                  }
+                }
+                user(login: $projectOwner) {
+                  projectV2(number: $projectNumber) {
+                    id
+                    title
+                    url
+                  }
+                }
+                node(id: $issueNodeId) {
+                  ... on Issue {
+                    number
+                    url
+                    projectItems(first: 100) {
+                      nodes {
+                        id
+                        project {
+                          id
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const result = await github.graphql(query, {
+              projectOwner,
+              projectNumber,
+              issueNodeId
+            });
+
+            const project = result.organization?.projectV2 || result.user?.projectV2;
+            if (!project) {
+              throw new Error(`Project ${projectOwner}/${projectNumber} was not found or the token cannot access it.`);
+            }
+
+            const issue = result.node;
+            if (!issue) {
+              throw new Error(`Issue node ${issueNodeId} was not found or the token cannot access it.`);
+            }
+
+            const existingItem = issue.projectItems.nodes.find(function(item) {
+              return item.project.id === project.id;
+            });
+            if (existingItem) {
+              core.info(`Issue #${issue.number} is already in project ${project.title}`);
+              return;
+            }
+
+            const mutation = `
+              mutation($projectId: ID!, $contentId: ID!) {
+                addProjectV2ItemById(input: {
+                  projectId: $projectId
+                  contentId: $contentId
+                }) {
+                  item {
+                    id
+                  }
+                }
+              }
+            `;
+
+            await github.graphql(mutation, {
+              projectId: project.id,
+              contentId: issueNodeId
+            });
+
+            core.info(`Added issue #${issue.number} to project ${project.title}: ${project.url}`);
