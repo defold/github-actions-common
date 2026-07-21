@@ -13,7 +13,7 @@ jobs:
       GH_TOKEN: ${{ secrets.PROJECT_TOKEN || github.token }}
     steps:
       - name: Update Score field
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ env.GH_TOKEN }}
           script: |
