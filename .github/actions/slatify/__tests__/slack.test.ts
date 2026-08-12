@@ -1,4 +1,7 @@
 import * as fs from 'fs';
+// Under ESM, jest does not inject the `jest` object as a global the way it does
+// describe/test/expect — it has to be imported.
+import {jest} from '@jest/globals';
 import * as github from '@actions/github';
 import {Block, Slack} from '../src/slack.js';
 import {
@@ -223,9 +226,11 @@ describe('Post Message Tests', () => {
       statusText: 'Not Found',
       body: JSON.stringify({error: 'channel_not_found'})
     });
-    await expect(
-      Slack.notify(url, {...options, fetch}, payload)
-    ).rejects.toThrow('Failed to post message to Slack');
+    const notify = Slack.notify(url, {...options, fetch}, payload);
+    await expect(notify).rejects.toThrow('Failed to post message to Slack');
+    // The underlying cause has to survive into the message, since this is the
+    // only place it is reported.
+    await expect(notify).rejects.toThrow('404');
   });
 
   test('Throw error when Slack answers 200 with a non-ok body', async () => {
@@ -238,5 +243,28 @@ describe('Post Message Tests', () => {
     await expect(
       Slack.notify(url, {...options, fetch}, payload)
     ).rejects.toThrow('Failed to post message to Slack');
+  });
+
+  // Regression guard: core.error() writes a ::error:: workflow command, which
+  // GitHub turns into a red annotation on the run even when the test passes.
+  // A handled failure must stay silent on stdout.
+  test('Emits no ::error:: annotation when the failure is handled', async () => {
+    const write = jest.spyOn(process.stdout, 'write').mockReturnValue(true);
+    try {
+      const fetch = stubFetch({
+        ok: false,
+        status: 500,
+        statusText: 'Server Error',
+        body: 'nope'
+      });
+      await expect(
+        Slack.notify(url, {...options, fetch}, payload)
+      ).rejects.toThrow('Failed to post message to Slack');
+
+      const emitted = write.mock.calls.map(c => String(c[0])).join('');
+      expect(emitted).not.toContain('::error::');
+    } finally {
+      write.mockRestore();
+    }
   });
 });

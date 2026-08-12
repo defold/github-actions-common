@@ -1,4 +1,3 @@
-import * as core from '@actions/core';
 import {context} from '@actions/github';
 import {MrkdwnElement, SectionBlock} from '@slack/types';
 import {
@@ -130,8 +129,15 @@ export class Slack {
         throw new Error(JSON.stringify(res.text));
       }
     } catch (err) {
-      core.error(errorMessage(err));
-      throw new Error('Failed to post message to Slack');
+      // Fold the cause into the thrown error rather than calling core.error()
+      // here. core.error() emits a ::error:: workflow command as soon as it
+      // runs, which GitHub renders as an annotation even when the caller
+      // handles the failure — that paints red errors onto green test runs, and
+      // in production splits one failure across two unrelated annotations.
+      // index.ts reports this through core.setFailed() instead.
+      throw new Error(`Failed to post message to Slack: ${errorMessage(err)}`, {
+        cause: err
+      });
     }
   }
 }

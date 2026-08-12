@@ -56,6 +56,7 @@ The input surface is unchanged, so this is a drop-in replacement apart from the 
 - **The `workflow` field links to the run.** Upstream linked to `…/commit/<sha>/checks` or `…/pull/<n>/checks`, which never identified the run that sent the message. It now points at `…/actions/runs/<run_id>`.
 - **`GITHUB_SERVER_URL` is honoured**, so URLs are correct on GitHub Enterprise. Upstream hardcoded `https://github.com`.
 - **The invalid-`mention_if` warning reports the offending value.** Upstream cleared the variable before formatting the message, so it always printed an empty value.
+- **A failed post produces one annotation, not two.** Upstream called `core.error()` with the underlying cause and then threw a bare `Failed to post message to Slack`, so the detail and the failure arrived as two unrelated annotations. The cause is now folded into the thrown error and reported once via `core.setFailed()`. As a side effect, exercising the failure path in tests no longer paints red annotations onto a green run.
 
 ## Development
 
