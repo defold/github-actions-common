@@ -1,0 +1,43 @@
+# Forked from lazy-actions/slatify (MIT) — see LICENSE and README.md.
+# Input names, defaults and message shape are kept identical to upstream so
+# this is a drop-in replacement; only the runtime and dependencies are current.
+name: 'Slatify'
+description: 'Slack Notification Action'
+inputs:
+  type:
+    description: 'job status (success, failure or cancelled)'
+    required: true
+  job_name:
+    description: 'job name of workflow (format: markdown)'
+    required: true
+  mention:
+    description: 'slack mention'
+    required: false
+  mention_if:
+    description: 'the condition for mention (success, failure, cancelled or always)'
+    required: false
+  username:
+    description: 'slack username'
+    required: false
+  icon_emoji:
+    description: 'slack icon emoji'
+    required: false
+  channel:
+    description: 'slack channel'
+    required: false
+  url:
+    description: 'slack incoming webhook url'
+    required: false
+  commit:
+    description: 'whether include commit data or not (true or false)'
+    required: false
+    default: 'false'
+  token:
+    description: 'need to get commit data'
+    required: false
+runs:
+  using: 'node24'
+  main: 'dist/index.js'
+branding:
+  icon: 'bell'
+  color: 'green'

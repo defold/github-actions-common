@@ -1,0 +1,63 @@
+# Guards the committed `dist/` bundle of the `slatify` composite JS action.
+#
+# Unlike everything else in this repository, this workflow is NOT
+# `workflow_call`-only: a checked-in bundle silently goes stale the moment
+# someone edits `src/` or bumps a dependency without rebuilding, and consumers
+# would keep running the old code. This job is the only thing that catches it.
+name: slatify build
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/actions/slatify/**'
+      - '.github/workflows/slatify-build.yml'
+  pull_request:
+    paths:
+      - '.github/actions/slatify/**'
+      - '.github/workflows/slatify-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .github/actions/slatify
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          # Pinned exactly, via .nvmrc, so the bundle stays byte-reproducible.
+          node-version-file: .github/actions/slatify/.nvmrc
+          cache: npm
+          cache-dependency-path: .github/actions/slatify/package-lock.json
+
+      # `npm ci` (not `npm install`) fails if package.json and the lockfile
+      # disagree, and verifies every tarball against its integrity hash.
+      # `--ignore-scripts` blocks postinstall hooks across the whole tree.
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify dist/ is up to date
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git diff --exit-code --stat -- dist/; then
+            echo "::error::dist/ is stale. Run 'npm run build' in .github/actions/slatify (Node $(cat .nvmrc)) and commit the result."
+            exit 1
+          fi

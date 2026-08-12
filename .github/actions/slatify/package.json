@@ -1,0 +1,30 @@
+{
+  "name": "slatify",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Slack notification action for GitHub Actions",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc --noEmit && ncc build src/index.ts -o dist && node scripts/write-dist-package-json.mjs",
+    "format": "prettier --write \"src/**/*.ts\" \"__tests__/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"__tests__/**/*.ts\"",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@actions/core": "3.0.1",
+    "@actions/github": "9.1.1",
+    "@slack/types": "3.0.0",
+    "@slack/webhook": "8.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "30.0.0",
+    "@types/node": "24.13.3",
+    "@vercel/ncc": "0.44.1",
+    "jest": "30.4.2",
+    "prettier": "3.9.6",
+    "ts-jest": "29.4.12",
+    "typescript": "6.0.3"
+  }
+}
