@@ -1,6 +1,6 @@
 # Setup Android SDK
 
-Composite GitHub Action that installs Android command-line tools, platform tools, a requested platform, build-tools, and NDK version. It restores and saves the SDK directory with `actions/cache` and exports Android-related environment variables for later steps.
+Composite GitHub Action that installs Android command-line tools, platform tools, a requested platform, build-tools, and NDK version. It restores and saves the SDK directory with `actions/cache` (unless `cache` is `"false"`) and exports Android-related environment variables for later steps.
 
 Use the action from `.github/actions/android`:
 
@@ -31,6 +31,7 @@ steps:
 | `android-ndk` | `25.2.9519653` | Android NDK version to install. |
 | `android-sdk-root` | empty | SDK install root. If omitted, the action chooses a platform-appropriate default. |
 | `cache-key-suffix` | `v1` | Manual cache-busting suffix appended to the cache key. |
+| `cache` | `"true"` | Restore and save the SDK tree in the Actions cache. Must be `"true"` or `"false"`; anything else fails the step. |
 
 ## Behavior
 
@@ -58,6 +59,13 @@ Caching notes:
 
 - Cache keys include runner OS, runner architecture, API level, build-tools version, NDK version, and `cache-key-suffix`.
 - Separating the cache by architecture avoids sharing SDK contents between x64 and arm64 runners.
+- **Pass `cache: "false"` from a job that builds untrusted code.** The Actions cache is
+  scoped by ref alone, and a workflow triggered by `repository_dispatch` (or anything else
+  that runs from the default branch) sits in the default branch's scope. An SDK and NDK
+  tree written there by an untrusted build is restored, and executed, by the trusted builds
+  that hold the signing keys. A key prefix does not help - it renames the entry, it does
+  not isolate it. Without the cache the action installs the packages from scratch, which
+  costs a few minutes.
 
 ## Example
 

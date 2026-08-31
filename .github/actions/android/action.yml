@@ -22,6 +22,14 @@ inputs:
     description: Optional suffix to bump cache generation manually
     required: false
     default: "v1"
+  cache:
+    description: >-
+      Restore and save the SDK tree in the GitHub Actions cache ("true" or "false").
+      Set it to "false" in a job that builds untrusted code: the Actions cache is scoped
+      by ref alone, so an entry such a job writes is restored, and executed, by the
+      trusted jobs sharing that scope.
+    required: false
+    default: "true"
 
 runs:
   using: composite
@@ -31,10 +39,18 @@ runs:
       shell: bash
       env:
         INPUT_ANDROID_SDK_ROOT: ${{ inputs.android-sdk-root }}
+        INPUT_CACHE: ${{ inputs.cache }}
         RUNNER_ARCH: ${{ runner.arch }}
         RUNNER_TEMP_DIR: ${{ runner.temp }}
       run: |
         set -euo pipefail
+
+        # 'cache' decides whether this job writes to a cache scope that trusted jobs
+        # restore from, so an unrecognised value must not quietly pick a side.
+        case "${INPUT_CACHE}" in
+          true|false) ;;
+          *) echo "::error::cache must be 'true' or 'false', got '${INPUT_CACHE}'"; exit 1 ;;
+        esac
 
         SDK_ROOT="${INPUT_ANDROID_SDK_ROOT}"
         API_LEVEL="${{ inputs.android-api-level }}"
@@ -53,6 +69,7 @@ runs:
         echo "ndk-root=${SDK_ROOT}/ndk/${NDK_VERSION}" >> "$GITHUB_OUTPUT"
 
     - name: Restore Android SDK cache
+      if: inputs.cache == 'true'
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ steps.vars.outputs.sdk-root }}
