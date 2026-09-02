@@ -1,0 +1,18 @@
+This action is derived from install-llvm-action.
+
+  https://github.com/KyleMayes/install-llvm-action
+  Fork point: ebc0426251bc40c7cd31162802432c68818ab8f0 (v2.0.9)
+  Copyright Kyle Mayes <kyle@mayeses.com>
+  Licensed under the Apache License, Version 2.0 — see LICENSE.txt
+
+Modifications by the Defold Foundation, also under the Apache License, Version 2.0:
+
+  - ported to ESM and the node24 runtime (upstream still declares node20)
+  - the asset manifest is imported and inlined into the bundle by ncc rather than
+    read from disk at runtime, because `__dirname` does not exist in ESM
+  - rebuilt with @vercel/ncc instead of parcel; yarn replaced by npm with a
+    committed package-lock.json
+  - dependencies updated to current majors, which are ESM-only
+  - the lodash chain in the asset generator replaced with a plain loop
+  - upstream's network-dependent test CLI replaced with offline unit tests
+  - the LLVM asset manifest regenerated past the fork point (adds LLVM 22 and 23)

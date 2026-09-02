@@ -1,0 +1,127 @@
+# Guards the committed `dist/` bundle of the `install-llvm` JS action, and smoke
+# tests it on every supported runner.
+#
+# Unlike almost everything else in this repository, this workflow is NOT
+# `workflow_call`-only: a checked-in bundle silently goes stale the moment
+# someone edits `src/` or bumps a dependency without rebuilding, and consumers
+# would keep running the old code. This job is the only thing that catches it.
+name: install-llvm build
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/actions/install-llvm/**'
+      - '.github/workflows/install-llvm-build.yml'
+  pull_request:
+    paths:
+      - '.github/actions/install-llvm/**'
+      - '.github/workflows/install-llvm-build.yml'
+  # Dispatchable so `install-llvm-assets.yml` can trigger these checks on the
+  # branch it pushes: workflow_dispatch is the one event GITHUB_TOKEN can fire.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .github/actions/install-llvm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          # Pinned exactly, via .nvmrc, so the bundle stays byte-reproducible.
+          # These are action inputs, so the paths are repo-root-relative and are
+          # NOT affected by defaults.run.working-directory above.
+          node-version-file: .github/actions/install-llvm/.nvmrc
+          cache: npm
+          cache-dependency-path: .github/actions/install-llvm/package-lock.json
+
+      # `npm ci` (not `npm install`) fails if package.json and the lockfile
+      # disagree, and verifies every tarball against its integrity hash.
+      # `--ignore-scripts` blocks postinstall hooks across the whole tree.
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify dist/ is up to date
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git diff --exit-code --stat -- dist/; then
+            echo "::error::dist/ is stale. Run 'npm run build' in .github/actions/install-llvm (Node $(cat .nvmrc)) and commit the result."
+            exit 1
+          fi
+
+  # Exercises the action the way a consumer does. This is the only check that
+  # proves the bundle actually downloads and extracts LLVM on each runner.
+  smoke:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        version:
+          # A bare major, to exercise version resolution, plus the newest exact
+          # version present for all three runners in src/assets.json.
+          - '21'
+          - '22.1.8'
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install LLVM and Clang
+        id: llvm
+        uses: ./.github/actions/install-llvm
+        with:
+          version: ${{ matrix.version }}
+          directory: ${{ runner.temp }}/llvm
+          env: true
+
+      # The job default is PowerShell on Windows, so bash needs to be explicit.
+      - name: Verify
+        shell: bash
+        env:
+          RESOLVED_VERSION: ${{ steps.llvm.outputs.version }}
+          REQUESTED_VERSION: ${{ matrix.version }}
+        run: |
+          set -euo pipefail
+
+          echo "requested=$REQUESTED_VERSION resolved=$RESOLVED_VERSION"
+          test -n "$RESOLVED_VERSION"
+          case "$RESOLVED_VERSION" in
+            "$REQUESTED_VERSION"|"$REQUESTED_VERSION".*) ;;
+            *) echo "::error::resolved version '$RESOLVED_VERSION' does not match '$REQUESTED_VERSION'"; exit 1 ;;
+          esac
+
+          # Via GITHUB_PATH — the portable assertion, and what consumers rely on.
+          clang --version
+          clang++ --version
+
+          # Via the exported CC/CXX (`env: true`). On Windows these are Windows
+          # paths without a .exe suffix, which bash resolves through MSYS.
+          echo "CC=$CC"
+          echo "CXX=$CXX"
+          "$CC" --version
+          "$CXX" --version

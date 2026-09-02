@@ -1,0 +1,99 @@
+# Refreshes the LLVM asset manifest of the `install-llvm` action from the
+# llvm/llvm-project releases, rebuilds the bundle, and opens a PR if anything
+# changed.
+#
+# PREREQUISITE: this workflow opens a pull request with GITHUB_TOKEN, which
+# requires "Allow GitHub Actions to create and approve pull requests" under
+# Settings -> Actions -> General. Without it `gh pr create` fails with
+# "GitHub Actions is not permitted to create or approve pull requests".
+#
+# NOTE: a pull request opened with GITHUB_TOKEN does NOT trigger `pull_request`
+# workflows, so the last step explicitly dispatches `install-llvm-build.yml`
+# against the pushed branch — workflow_dispatch is the one event GITHUB_TOKEN
+# can fire, and its check runs attach to the branch head, so they show up on
+# the PR.
+name: install-llvm assets
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly, Monday 05:00 UTC.
+    - cron: '0 5 * * 1'
+
+permissions:
+  contents: write
+  pull-requests: write
+  # Needed to dispatch install-llvm-build.yml on the pushed branch.
+  actions: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .github/actions/install-llvm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .github/actions/install-llvm/.nvmrc
+          cache: npm
+          cache-dependency-path: .github/actions/install-llvm/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      # generate.ts paginates every llvm/llvm-project release, which the
+      # unauthenticated rate limit will not cover.
+      - name: Regenerate the asset manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: npm run generate
+
+      # The manifest is inlined into the bundle, so a manifest change is only
+      # real once dist/ is rebuilt.
+      - name: Build
+        run: npm run build
+
+      - name: Open a pull request if anything changed
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$(git status --porcelain -- src/assets.json dist/)" ]; then
+            echo 'Asset manifest is already up to date.'
+            exit 0
+          fi
+
+          branch="install-llvm-assets-$(date -u +%Y%m%d%H%M%S)"
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$branch"
+          git add -- src/assets.json dist/
+          git commit -m 'install-llvm: refresh the LLVM asset manifest'
+          git push origin "$branch"
+
+          body=$(cat <<'BODY'
+          Regenerated `src/assets.json` from the llvm/llvm-project releases and rebuilt `dist/`.
+
+          Opened by the `install-llvm assets` workflow. The `install-llvm build` checks are dispatched
+          separately against this branch, because a PR created with `GITHUB_TOKEN` does not trigger
+          `pull_request` workflows on its own.
+          BODY
+          )
+
+          gh pr create \
+            --base "$GITHUB_REF_NAME" \
+            --head "$branch" \
+            --title 'install-llvm: refresh the LLVM asset manifest' \
+            --body "$body"
+
+          # Give the PR its checks. workflow_dispatch is the one event
+          # GITHUB_TOKEN is allowed to trigger.
+          gh workflow run install-llvm-build.yml --ref "$branch"

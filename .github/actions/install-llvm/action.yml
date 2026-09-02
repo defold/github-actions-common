@@ -1,0 +1,44 @@
+# Forked from KyleMayes/install-llvm-action @ ebc0426251bc40c7cd31162802432c68818ab8f0
+# (v2.0.9), Apache-2.0 — see LICENSE.txt and NOTICE. Input names, defaults and the
+# output are kept identical to upstream so this is a drop-in replacement; only the
+# runtime and dependencies are current.
+name: 'Install LLVM and Clang'
+description: 'Downloads and installs LLVM and Clang binaries.'
+
+branding:
+  icon: 'arrow-down-circle'
+  color: 'black'
+
+inputs:
+  version:
+    description: 'The version of LLVM and Clang binaries to install.'
+    required: true
+  arch:
+    description: 'The architecture (either `x64` or `arm64`) to install LLVM and Clang binaries for.'
+    required: false
+  force-url:
+    description: 'The full download URL to use for LLVM and Clang binaries.'
+    required: false
+  directory:
+    description: 'The directory to install LLVM and Clang binaries to.'
+    required: false
+  cached:
+    description: 'Whether the LLVM and Clang binaries were cached.'
+    required: false
+  mirror-url:
+    description: 'The base URL to download LLVM and Clang binaries from instead of using GitHub.'
+    required: false
+  auth:
+    description: 'The Authorization header to use when downloading LLVM and Clang binaries.'
+    required: false
+  env:
+    description: 'Whether to set CC and CXX environment variables to Clang paths.'
+    required: false
+
+outputs:
+  version:
+    description: 'The full version of LLVM and Clang binaries installed.'
+
+runs:
+  using: 'node24'
+  main: 'dist/index.js'
