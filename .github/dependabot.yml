@@ -15,4 +15,10 @@ updates:
   - package-ecosystem: "npm"
     directory: "/.github/actions/slatify"
     schedule:
+      interval: "weekly"  # install-llvm is a bundled JS action. Dependabot updates package.json and the
+  # lockfile but cannot rebuild dist/, so these PRs fail the install-llvm-build
+  # workflow until someone runs `npm run build` and amends the branch.
+  - package-ecosystem: "npm"
+    directory: "/.github/actions/install-llvm"
+    schedule:
       interval: "weekly"
