@@ -143,7 +143,7 @@ jobs:
   build_with_bob_windows:
     strategy:
       matrix:
-        platform: [x86_64-win32, x86-win32]
+        platform: [x86_64-win32]
         exclude: ${{ fromJSON(inputs.ignored_platforms) }}
       fail-fast: false
     runs-on: ${{ inputs.windows_runner }}
