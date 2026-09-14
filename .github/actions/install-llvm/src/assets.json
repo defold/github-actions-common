@@ -47,7 +47,8 @@
       "22.1.5": "/LLVM-22.1.5-macOS-ARM64.tar.xz",
       "22.1.6": "/LLVM-22.1.6-macOS-ARM64.tar.xz",
       "22.1.7": "/LLVM-22.1.7-macOS-ARM64.tar.xz",
-      "22.1.8": "/LLVM-22.1.8-macOS-ARM64.tar.xz"
+      "22.1.8": "/LLVM-22.1.8-macOS-ARM64.tar.xz",
+      "23.1.1": "/LLVM-23.1.1-macOS-ARM64.tar.xz"
     },
     "x64": {
       "9.0.1": "/clang%2Bllvm-9.0.1-x86_64-apple-darwin.tar.xz",
@@ -163,7 +164,8 @@
       "22.1.6": "/LLVM-22.1.6-Linux-ARM64.tar.xz",
       "22.1.7": "/LLVM-22.1.7-Linux-ARM64.tar.xz",
       "22.1.8": "/LLVM-22.1.8-Linux-ARM64.tar.xz",
-      "23.1.0": "/LLVM-23.1.0-Linux-ARM64.tar.xz"
+      "23.1.0": "/LLVM-23.1.0-Linux-ARM64.tar.xz",
+      "23.1.1": "/LLVM-23.1.1-Linux-ARM64.tar.xz"
     },
     "x64": {
       "7.1.0": "/clang%2Bllvm-7.1.0-x86_64-linux-gnu-ubuntu-14.04.tar.xz",
@@ -227,7 +229,8 @@
       "22.1.6": "/LLVM-22.1.6-Linux-X64.tar.xz",
       "22.1.7": "/LLVM-22.1.7-Linux-X64.tar.xz",
       "22.1.8": "/LLVM-22.1.8-Linux-X64.tar.xz",
-      "23.1.0": "/LLVM-23.1.0-Linux-X64.tar.xz"
+      "23.1.0": "/LLVM-23.1.0-Linux-X64.tar.xz",
+      "23.1.1": "/LLVM-23.1.1-Linux-X64.tar.xz"
     }
   },
   "win32": {
