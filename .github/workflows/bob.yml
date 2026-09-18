@@ -6,58 +6,66 @@ on:
       ubuntu_runner:
         required: false
         type: string
-        description: 'Which Ubuntu runner should use'
+        description: "Which Ubuntu runner should use"
         default: ubuntu-latest
       macos_runner:
         required: false
         type: string
-        description: 'Which MacOS runner should use'
+        description: "Which MacOS runner should use"
         default: macOS-latest
       windows_runner:
         required: false
         type: string
-        description: 'Which Windows runner should use'
+        description: "Which Windows runner should use"
         default: windows-latest
       build_server:
         required: false
         type: string
-        description: 'Build server url'
-        default: 'https://build-stage.defold.com'
+        description: "Build server url"
+        default: "https://build-stage.defold.com"
       channel:
         required: false
         type: string
-        description: 'Which Defold version use to build. Possible values: alpha, beta, stable'
+        description: "Which Defold version use to build. Possible values: alpha, beta, stable"
         default: alpha
       bob_version_filename:
         required: false
         type: string
-        description: 'JSON filename withi Bob versions'
-        default: 'info.json'
+        description: "JSON filename withi Bob versions"
+        default: "info.json"
       bob_jar_url:
         required: false
         type: string
-        description: 'Direct URL to bob.jar. If set, channel and bob_version_filename are ignored.'
-        default: ''
+        description: "Direct URL to bob.jar. If set, channel and bob_version_filename are ignored."
+        default: ""
       additonal_build_options:
         required: false
         type: string
-        description: 'Additional options passed to build command'
-        default: '--archive'
+        description: "Additional options passed to build command"
+        default: "--archive"
       additonal_bundle_options:
         required: false
         type: string
-        description: 'Additional options passed to bundle command'
+        description: "Additional options passed to bundle command"
       ignored_platforms:
         required: false
         type: string
-        description: 'JSON-like string with list of ignored platforms' # [{"platform": "wasm_pthread-web"}, {"platform": "wasm-web"}]
-        default: '[]'
+        description: "JSON-like string with list of ignored platforms" # [{"platform": "wasm_pthread-web"}, {"platform": "wasm-web"}]
+        default: "[]"
 
 jobs:
   build_with_bob:
     strategy:
       matrix:
-        platform: [armv7-android, arm64-android, x86_64-linux, arm64-linux, wasm-web, wasm_pthread-web]
+        platform:
+          [
+            armv7-android,
+            arm64-android,
+            x86_64-linux,
+            arm64-linux,
+            wasm-web,
+            wasm_pthread-web,
+          ]
         exclude: ${{ fromJSON(inputs.ignored_platforms) }}
       fail-fast: false
     runs-on: ${{ inputs.ubuntu_runner }}
@@ -66,9 +74,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          java-version: '25'
+          java-version: "25"
           architecture: x64
-          distribution: 'temurin'
+          distribution: "temurin"
 
       - name: Get Defold version
         if: ${{ inputs.bob_jar_url == '' }}
@@ -152,9 +160,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          java-version: '25'
+          java-version: "25"
           architecture: x64
-          distribution: 'temurin'
+          distribution: "temurin"
 
       - name: Get Defold version
         if: ${{ inputs.bob_jar_url == '' }}
@@ -227,7 +235,7 @@ jobs:
   build_with_bob_macos:
     strategy:
       matrix:
-        platform: [arm64-macos, x86_64-macos, arm64-ios]
+        platform: [arm64-macos, x86_64-macos, arm64-ios, arm64_sim-ios]
         exclude: ${{ fromJSON(inputs.ignored_platforms) }}
       fail-fast: false
     runs-on: ${{ inputs.macos_runner }}
@@ -236,9 +244,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          java-version: '25'
+          java-version: "25"
           architecture: x64
-          distribution: 'temurin'
+          distribution: "temurin"
 
       - name: Get Defold version
         if: ${{ inputs.bob_jar_url == '' }}
