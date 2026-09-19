@@ -61,6 +61,7 @@ jobs:
           [
             armv7-android,
             arm64-android,
+            x86_64-android,
             x86_64-linux,
             arm64-linux,
             wasm-web,
